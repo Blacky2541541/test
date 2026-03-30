@@ -15,7 +15,7 @@ ScreenGui.Parent = game:GetService("CoreGui")
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Parent = ScreenGui
-MainFrame.Size = UDim2.new(0, 300, 0, 360)
+MainFrame.Size = UDim2.new(0, 300, 0, 400)
 MainFrame.Position = UDim2.new(0.5, -150, 0.5, -160)
 MainFrame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
 MainFrame.BorderSizePixel = 2
@@ -132,7 +132,7 @@ TPButton.TextSize = 16
 local ATMFarmButton = Instance.new("TextButton")
 ATMFarmButton.Parent = MainFrame
 ATMFarmButton.Size = UDim2.new(0, 200, 0, 30)
-ATMFarmButton.Position = UDim2.new(0, 50, 0, 300) -- Position unter dem Insta-Kill-Button
+ATMFarmButton.Position = UDim2.new(0, 50, 0, 340) -- Position unter dem TP-Button
 ATMFarmButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
 ATMFarmButton.BorderSizePixel = 1
 ATMFarmButton.BorderColor3 = Color3.new(0, 1, 0)
@@ -737,7 +737,7 @@ UserInputService.InputChanged:Connect(function(input)
         local sliderSize = SpeedSlider.AbsoluteSize
         
         local relativeX = math.clamp((mousePos.X - sliderPos.X) / sliderSize.X, 0, 1)
-        speedValue = 0.1 + (relativeX * 49.9) -- 0.1 bis 10.0
+       speedValue = 0.1 + (relativeX * 49.9) -- 0.1 bis 50.0
         
         updateSpeed()
     end
