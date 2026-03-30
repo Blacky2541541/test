@@ -183,6 +183,8 @@ PlayerScrollingFrame.BorderSizePixel = 0
 PlayerScrollingFrame.ScrollBarThickness = 8
 PlayerScrollingFrame.ScrollBarImageColor3 = Color3.new(0, 1, 0)
 
+
+
 -- Layout, um die Buttons automatisch zu sortieren
 local PlayerListLayout = Instance.new("UIListLayout")
 PlayerListLayout.Parent = PlayerScrollingFrame
@@ -191,6 +193,46 @@ PlayerListLayout.Padding = UDim.new(0, 2)
 
 -- Tabelle zum Speichern der Spieler-Buttons
 local playerButtons = {}
+
+-- ==================== NEUE TELEPORT-SPIELERLISTEN-GUI ====================
+local TPListFrame = Instance.new("Frame")
+TPListFrame.Parent = ScreenGui
+TPListFrame.Size = UDim2.new(0, 200, 0, 300)
+TPListFrame.Position = UDim2.new(1, -210, 0.5, -150) -- Rechts vom Hauptfenster
+TPListFrame.BackgroundColor3 = Color3.new(0.05, 0.05, 0.05)
+TPListFrame.BorderSizePixel = 2
+TPListFrame.BorderColor3 = Color3.new(1, 1, 0) -- Gelber Rand zur Unterscheidung
+TPListFrame.Active = true
+TPListFrame.Draggable = true
+
+local TPListTitle = Instance.new("TextLabel")
+TPListTitle.Parent = TPListFrame
+TPListTitle.Size = UDim2.new(1, 0, 0, 30)
+TPListTitle.Position = UDim2.new(0, 0, 0, 0)
+TPListTitle.BackgroundTransparency = 1
+TPListTitle.Text = "TP to Me"
+TPListTitle.TextColor3 = Color3.new(1, 1, 0) -- Gelber Text
+TPListTitle.Font = Enum.Font.SourceSansBold
+TPListTitle.TextSize = 16
+
+-- ScrollingFrame für die Liste der Spieler
+local TPScrollingFrame = Instance.new("ScrollingFrame")
+TPScrollingFrame.Parent = TPListFrame
+TPScrollingFrame.Size = UDim2.new(1, -10, 1, -40)
+TPScrollingFrame.Position = UDim2.new(0, 5, 0, 35)
+TPScrollingFrame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+TPScrollingFrame.BorderSizePixel = 0
+TPScrollingFrame.ScrollBarThickness = 8
+TPScrollingFrame.ScrollBarImageColor3 = Color3.new(1, 1, 0) -- Gelber Scrollbalken
+
+-- Layout, um die Buttons automatisch zu sortieren
+local TPListLayout = Instance.new("UIListLayout")
+TPListLayout.Parent = TPScrollingFrame
+TPListLayout.SortOrder = Enum.SortOrder.Name
+TPListLayout.Padding = UDim.new(0, 2)
+
+-- Tabelle zum Speichern der TP-Spieler-Buttons
+local tpPlayerButtons = {}
 
 -- Variablen
 local speedValue = 1.0
@@ -216,6 +258,8 @@ local atmFarmEnabled = false
 local currentATM = nil
 local isRobbing = false
 local atmCooldown = 0
+-- NEU: TP-Target Variable
+local tpTargetPlayer = nil
 
 -- Geschwindigkeitsfunktion
 local function updateSpeed()
@@ -440,6 +484,79 @@ local function toggleFollow(playerToFollow)
     end -- <--- DIESES END WAR WICHTIG!
 end -- <--- UND DIESES END BEENDET DIE toggleFollow FUNKTION!
 
+-- ==================== NEUE TELEPORT-SPIELERLISTEN FUNKTIONEN ====================
+
+-- Erstellt oder aktualisiert den Button für einen einzelnen Spieler in der TP-Liste
+local function createOrUpdateTPPlayerButton(player)
+    if player == LocalPlayer then return end -- Nicht sich selbst anzeigen
+
+    local button = tpPlayerButtons[player]
+    if not button then
+        -- Button erstellen, falls er nicht existiert
+        button = Instance.new("TextButton")
+        button.Parent = TPScrollingFrame
+        button.Size = UDim2.new(1, 0, 0, 25)
+        button.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+        button.BorderSizePixel = 1
+        button.BorderColor3 = Color3.new(0.5, 0.5, 0.5)
+        button.TextColor3 = Color3.new(1, 1, 1)
+        button.Font = Enum.Font.SourceSans
+        button.TextSize = 14
+        tpPlayerButtons[player] = button
+    end
+
+    button.Text = player.Name
+    
+    -- Button-Farbe basierend auf dem Status aktualisieren
+    if tpTargetPlayer == player then
+        button.BackgroundColor3 = Color3.new(0.5, 0.5, 0) -- Gelb, wenn dieser Spieler das TP-Ziel ist
+        button.Text = player.Name .. " [TARGET]"
+    else
+        button.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2) -- Standardfarbe
+    end
+end
+
+-- Entfernt den Button eines Spielers, der gegangen ist
+local function removeTPPlayerButton(player)
+    if tpPlayerButtons[player] then
+        tpPlayerButtons[player]:Destroy()
+        tpPlayerButtons[player] = nil
+    end
+end
+
+-- Hauptfunktion, um die gesamte TP-Liste zu aktualisieren
+local function updateTPPlayerList()
+    -- Alte Buttons von Spielern entfernen, die nicht mehr im Server sind
+    for player, _ in pairs(tpPlayerButtons) do
+        if not Players:FindFirstChild(player.Name) then
+            removeTPPlayerButton(player)
+        end
+    end
+    
+    -- Buttons für alle aktuellen Spieler erstellen oder aktualisieren
+    for _, player in pairs(Players:GetPlayers()) do
+        createOrUpdateTPPlayerButton(player)
+    end
+    
+    -- Größe des ScrollingFrame anpassen
+    TPScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, TPListLayout.AbsoluteContentSize.Y)
+end
+
+-- Funktion zum Auswählen eines TP-Ziels
+local function selectTPTarget(playerToTP)
+    if tpTargetPlayer == playerToTP then
+        -- Deselect, wenn schon ausgewählt
+        tpTargetPlayer = nil
+        print("TP-Ziel entfernt.")
+    else
+        -- Neues Ziel auswählen
+        tpTargetPlayer = playerToTP
+        print("TP-Ziel gesetzt: " .. tpTargetPlayer.Name)
+    end
+    -- Listen aktualisieren, um die Farben zu ändern
+    updateTPPlayerList()
+end
+
 local function toggleInstaKill()
     instaKillEnabled = not instaKillEnabled
     if instaKillEnabled then
@@ -483,14 +600,14 @@ local function toggleInstaKill()
 end
 
 
--- NEU: Teleport-Funktion
+-- NEUE: Teleport-Funktion (verwendet tpTargetPlayer)
 local function teleportTargetToMe()
-    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") and Character and Character:FindFirstChild("HumanoidRootPart") then
+    if tpTargetPlayer and tpTargetPlayer.Character and tpTargetPlayer.Character:FindFirstChild("HumanoidRootPart") and Character and Character:FindFirstChild("HumanoidRootPart") then
         -- Teleportiere den ausgewählten Spieler zu deiner Position (mit einem kleinen Abstand)
-        targetPlayer.Character.HumanoidRootPart.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
-        print(targetPlayer.Name .. " wurde zu dir teleportiert!")
+        tpTargetPlayer.Character.HumanoidRootPart.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+        print(tpTargetPlayer.Name .. " wurde zu dir teleportiert!")
     else
-        print("Kein gültiges Ziel oder Ziel nicht gefunden.")
+        print("Kein gültiges TP-Ziel ausgewählt oder Ziel nicht gefunden. Wähle einen Spieler aus der 'TP to Me' Liste.")
     end
 end
 
@@ -909,8 +1026,10 @@ end)
 Players.PlayerAdded:Connect(function(player)
     player.CharacterAdded:Connect(function()
         updatePlayerList()
+        updateTPPlayerList()
     end)
     updatePlayerList()
+    updateTPPlayerList()
 end)
 
 Players.PlayerRemoving:Connect(function(player)
@@ -918,6 +1037,10 @@ Players.PlayerRemoving:Connect(function(player)
     if targetPlayer == player then
         toggleFollow(player)
     end
+         if tpTargetPlayer == player then
+        tpTargetPlayer = nil
+    end
+    removeTPPlayerButton(player)
     removePlayerButton(player)
 end)
 
@@ -930,6 +1053,37 @@ spawn(function()
     while ScreenGui.Parent do
         wait(5)
         updatePlayerList()
+    end
+end)
+
+-- ==================== EVENT-HANDLER FÜR DIE TELEPORT-SPIELERLISTE ====================
+
+-- Wenn ein Button in der TP-Spielerliste geklickt wird
+TPScrollingFrame.ChildAdded:Connect(function(child)
+    if child:IsA("TextButton") then
+        child.MouseButton1Click:Connect(function()
+            local playerName = child.Text:gsub(" %[%w+%]", "") -- Name bereinigen (entfernt [TARGET])
+            local player = Players:FindFirstChild(playerName)
+            if player then
+                selectTPTarget(player)
+            end
+        end)
+    end
+end)
+
+-- ==================== INITIALISIERUNG ====================
+-- Erstelle die initiale Spielerliste
+updatePlayerList()
+
+-- Erstelle die initiale TP-Spielerliste
+updateTPPlayerList()
+
+-- Aktualisiere die Listen alle paar Sekunden für den Fall, dass etwas verpasst wird
+spawn(function()
+    while ScreenGui.Parent do
+        wait(5)
+        updatePlayerList()
+        updateTPPlayerList()
     end
 end)
 
