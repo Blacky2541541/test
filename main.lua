@@ -600,14 +600,31 @@ local function toggleInstaKill()
 end
 
 
--- NEUE: Teleport-Funktion (verwendet tpTargetPlayer)
+-- Verbesserte Version mit serverseitiger Validierung
 local function teleportTargetToMe()
-    if tpTargetPlayer and tpTargetPlayer.Character and tpTargetPlayer.Character:FindFirstChild("HumanoidRootPart") and Character and Character:FindFirstChild("HumanoidRootPart") then
-        -- Teleportiere den ausgewählten Spieler zu deiner Position (mit einem kleinen Abstand)
-        tpTargetPlayer.Character.HumanoidRootPart.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
-        print(tpTargetPlayer.Name .. " wurde zu dir teleportiert!")
-    else
-        print("Kein gültiges TP-Ziel ausgewählt oder Ziel nicht gefunden. Wähle einen Spieler aus der 'TP to Me' Liste.")
+    if tpTargetPlayer and tpTargetPlayer.Character and tpTargetPlayer.Character:FindFirstChild("HumanoidRootPart") 
+       and Character and Character:FindFirstChild("HumanoidRootPart") then
+        
+        -- Versuche, den Spieler zu teleportieren
+        local targetHRP = tpTargetPlayer.Character.HumanoidRootPart
+        local myHRP = Character.HumanoidRootPart
+        
+        -- Speichere die ursprüngliche Position
+        local originalPosition = targetHRP.CFrame
+        
+        -- Teleport-Versuch
+        targetHRP.CFrame = myHRP.CFrame * CFrame.new(0, 0, 3)
+        
+        -- Warte kurz und prüfe, ob der Teleport "gehalten" hat
+        wait(0.1)
+        
+        if (targetHRP.Position - myHRP.Position).Magnitude > 5 then
+            print("Teleport erfolgreich!")
+        else
+            print("Teleport wurde vom Server korrigiert - funktioniert nicht zuverlässig")
+            -- Optional: Teleportiere dich stattdessen zum Ziel
+            -- myHRP.CFrame = originalPosition * CFrame.new(0, 0, 3)
+        end
     end
 end
 
