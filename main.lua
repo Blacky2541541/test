@@ -1113,58 +1113,32 @@ Players.PlayerRemoving:Connect(onPlayerRemoving)
 
 -- ==================== ZENTRALE RESPAWN-FUNKTION (BEHEBT ALLE PROBLEME) ====================
 
--- Diese Funktion wird IMMER aufgerufen, wenn du respawnst. Sie räumt alles sauber auf.
+-- Simplified respawn handler
 LocalPlayer.CharacterAdded:Connect(function(newCharacter)
-    print("Respawn erkannt. Setze alle Funktionen zurück.")
-    
-    -- 1. WICHTIG: Unsichtbarkeit sofort zurücksetzen
-    if invisibilityEnabled then
-        -- Sichere Methode zum Zurücksetzen der Unsichtbarkeit
-        invisibilityEnabled = false
-        InvisibilityButton.Text = "Unsichtbarkeit: AUS"
-        InvisibilityButton.TextColor3 = Color3.new(1, 0, 0)
-
-        -- Zerstöre den Klon, falls er noch existiert
-        if characterClone then
-            characterClone:Destroy()
-            characterClone = nil
-        end
-        
-        -- Setze die Steuerung auf den neuen Charakter zurück
-        player.Character = newCharacter
-    end
-    
-    -- 2. Aktualisiere die globalen Charakter-Variablen
     Character = newCharacter
     Humanoid = Character:WaitForChild("Humanoid")
     
-    -- 3. Setze alle anderen Funktionen zurück, um Fehler zu vermeiden
+    -- Reset invisibility state
+    if invisibilityEnabled then
+        invisibilityEnabled = false
+        InvisibilityButton.Text = "Unsichtbarkeit: AUS"
+        InvisibilityButton.TextColor3 = Color3.new(1, 0, 0)
+        originalTransparency = {}
+        originalCharacterParts = {}
+    end
+    
+    -- Reset other states as needed
     if noClipEnabled then
-        toggleNoClip() -- Schaltet NoClip aus
+        toggleNoClip()
     end
+    
     if flying then
-        stopFly() -- Schaltet Fliegen aus
-    end
-    if atmFarmEnabled then
-        atmFarmEnabled = false
-        ATMFarmButton.Text = "ATM Farm: AUS"
-        ATMFarmButton.TextColor3 = Color3.new(1, 0, 0)
-        isRobbing = false
-        currentATM = nil
-    end
-    if isFollowing then
-        toggleFollow(targetPlayer) -- Beendet das Folgen
+        stopFly()
     end
     
-    -- 4. Setze Hilfsvariablen zurück
-    originalCharacter = nil
-    originalTransparency = {}
-    
-    -- 5. Aktualisiere die Spielerlisten
+    -- Update player lists
     updatePlayerList()
     updateTPPlayerList()
-    
-    print("Reset nach Respawn abgeschlossen.")
 end)
 
 -- ==================== EVENT-HANDLER FÜR DIE SPIELERLISTE ====================
