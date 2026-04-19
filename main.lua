@@ -15,7 +15,7 @@ ScreenGui.Parent = game:GetService("CoreGui")
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Parent = ScreenGui
-MainFrame.Size = UDim2.new(0, 300, 0, 400)
+MainFrame.Size = UDim2.new(0, 320, 0, 550)
 MainFrame.Position = UDim2.new(0.5, -150, 0.5, -160)
 MainFrame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
 MainFrame.BorderSizePixel = 2
@@ -140,6 +140,45 @@ InvisibilityButton.Text = "Unsichtbarkeit: AUS"
 InvisibilityButton.TextColor3 = Color3.new(1, 0, 0)
 InvisibilityButton.Font = Enum.Font.SourceSansBold
 InvisibilityButton.TextSize = 16
+
+-- NEU: Schlangen-Transformations-Button
+local SnakeButton = Instance.new("TextButton")
+SnakeButton.Parent = MainFrame
+SnakeButton.Size = UDim2.new(0, 200, 0, 30)
+SnakeButton.Position = UDim2.new(0, 50, 0, 420) -- Position unter dem Unsichtbarkeits-Button
+SnakeButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+SnakeButton.BorderSizePixel = 1
+SnakeButton.BorderColor3 = Color3.new(0, 1, 0)
+SnakeButton.Text = "Schlange: AUS"
+SnakeButton.TextColor3 = Color3.new(1, 0, 0)
+SnakeButton.Font = Enum.Font.SourceSansBold
+SnakeButton.TextSize = 16
+
+-- NEU: Tanz-Button
+local DanceButton = Instance.new("TextButton")
+DanceButton.Parent = MainFrame
+DanceButton.Size = UDim2.new(0, 200, 0, 30)
+DanceButton.Position = UDim2.new(0, 50, 0, 460) -- Position unter dem Schlangen-Button
+DanceButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+DanceButton.BorderSizePixel = 1
+DanceButton.BorderColor3 = Color3.new(0, 1, 0)
+DanceButton.Text = "Tanzen"
+DanceButton.TextColor3 = Color3.new(1, 1, 0)
+DanceButton.Font = Enum.Font.SourceSansBold
+DanceButton.TextSize = 16
+
+-- NEU: Partikel-Show-Button
+local ParticleButton = Instance.new("TextButton")
+ParticleButton.Parent = MainFrame
+ParticleButton.Size = UDim2.new(0, 200, 0, 30)
+ParticleButton.Position = UDim2.new(0, 50, 0, 540) -- Position unter dem Zufalls-TP-Button
+ParticleButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+ParticleButton.BorderSizePixel = 1
+ParticleButton.BorderColor3 = Color3.new(0, 1, 0)
+ParticleButton.Text = "Partikel-Show"
+ParticleButton.TextColor3 = Color3.new(1, 1, 0)
+ParticleButton.Font = Enum.Font.SourceSansBold
+ParticleButton.TextSize = 16
 
 -- NEU: ATM Farm Button
 local ATMFarmButton = Instance.new("TextButton")
@@ -283,6 +322,13 @@ local cameraOffset = nil
 local characterClone = nil
 local originalCharacter = nil
 
+-- NEU: Schlangen-Transformations-Variablen
+local isSnake = false
+local originalBodyParts = {}
+local snakeModel = nil
+local snakeParts = {}
+
+
 -- Geschwindigkeitsfunktion
 local function updateSpeed()
     if Humanoid then
@@ -398,7 +444,7 @@ local function updateESP()
     end
 end
 
--- NEU: Unsichtbarkeits-Funktion mit Klon-Methode (funktioniert auf dem Server)
+-- NEU: Verbesserte Unsichtbarkeits-Funktion
 local function toggleInvisibility()
     invisibilityEnabled = not invisibilityEnabled
     
@@ -406,73 +452,284 @@ local function toggleInvisibility()
         InvisibilityButton.Text = "Unsichtbarkeit: AN"
         InvisibilityButton.TextColor3 = Color3.new(0, 1, 0)
         
-        -- Speichere das Original
-        originalCharacter = Character
-        
-        -- Klone den Charakter
-        characterClone = originalCharacter:Clone()
-        
-        -- Mache den Klon unsichtbar
-        for _, part in pairs(characterClone:GetDescendants()) do
+        -- Speichere alle Original-Transparenzwerte
+        for _, part in pairs(Character:GetDescendants()) do
             if part:IsA("BasePart") then
+                originalTransparency[part] = part.Transparency
                 part.Transparency = 1
-                part.CanCollide = false -- Wichtig, damit du nicht stecken bleibst
+            elseif part:IsA("Decal") or part:IsA("Texture") then
+                originalTransparency[part] = part.Transparency
+                part.Transparency = 1
             end
         end
         
-        -- Setze den Klon in die Welt
-        characterClone.Parent = workspace
-        characterClone.HumanoidRootPart.CFrame = originalCharacter.HumanoidRootPart.CFrame
+        -- Verstecke den HumanoidRootPart komplett
+        if Character:FindFirstChild("HumanoidRootPart") then
+            Character.HumanoidRootPart.Transparency = 1
+        end
         
-        -- WICHTIG: Übertrage die Steuerung auf den Klon
-        player.Character = characterClone
-        Character = characterClone -- Aktualisiere unsere lokale Variable
-        Humanoid = Character:WaitForChild("Humanoid")
+        -- Verstecke den Namen über dem Kopf
+        local head = Character:FindFirstChild("Head")
+        if head and head:FindFirstChild("NameTag") then
+            head.NameTag.Visible = false
+        end
         
-        -- Mache den Original-Charakter für DICH unsichtbar (damit du nicht doppelt siehst)
-        originalCharacter.Parent = nil -- Zerstört ihn nur für dich
-        
-        -- Führe die NoClip-Logik für den neuen Charakter aus
-        if noClipEnabled then
-            for _, part in pairs(Character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
-                end
-            end
+        -- Deaktiviere die Schatten
+        if Humanoid then
+            Humanoid.MaxHealth = 0
+            Humanoid.Health = 0
+            wait()
+            Humanoid.MaxHealth = 100
+            Humanoid.Health = 100
         end
         
     else
         InvisibilityButton.Text = "Unsichtbarkeit: AUS"
         InvisibilityButton.TextColor3 = Color3.new(1, 0, 0)
         
-        -- Stelle den Original-Charakter wieder her
-        if originalCharacter then
-            originalCharacter.Parent = workspace
-            player.Character = originalCharacter
-            
-            -- WICHTIG: Zerstöre den Klon
-            if characterClone then
-                characterClone:Destroy()
-            end
-            
-            -- Aktualisiere unsere Variablen
-            Character = originalCharacter
-            Humanoid = Character:WaitForChild("Humanoid")
-            
-            -- Setze die Variablen zurück
-            characterClone = nil
-            originalCharacter = nil
-            
-            -- Führe die NoClip-Logik für den wiederhergestellten Charakter aus
-            if noClipEnabled then
-                for _, part in pairs(Character:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = false
-                    end
-                end
+        -- Stelle alle ursprünglichen Transparenzwerte wieder her
+        for part, transparency in pairs(originalTransparency) do
+            if part and part.Parent then
+                part.Transparency = transparency
             end
         end
+        
+        -- Zeige den Namen über dem Kopf wieder
+        local head = Character:FindFirstChild("Head")
+        if head and head:FindFirstChild("NameTag") then
+            head.NameTag.Visible = true
+        end
+        
+        -- Leere die Tabelle
+        originalTransparency = {}
     end
+end
+
+-- NEU: Partikel-Effekt-Show
+local function startParticleShow()
+    if not Character or not Character:FindFirstChild("HumanoidRootPart") then return end
+    
+    local rootPart = Character.HumanoidRootPart
+    
+    -- Erstelle verschiedene Partikel-Effekte
+    for i = 1, 10 do
+        local particle = Instance.new("ParticleEmitter")
+        particle.Color = ColorSequence.new(Color3.new(math.random(), math.random(), math.random()))
+        particle.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(1, 1)})
+        particle.LightEmission = 0.5
+        particle.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, 2), NumberSequenceKeypoint.new(1, 5)})
+        particle.Texture = "rbxassetid://247312807"
+        particle.Lifetime = NumberRange.new(1, 3)
+        particle.Rate = 100
+        particle.Speed = NumberRange.new(5, 10)
+        particle.SpreadAngle = Vector2.new(0, 360)
+        particle.Parent = rootPart
+        
+        -- Zerstöre den Partikel-Effekt nach 10 Sekunden
+        spawn(function()
+            wait(10)
+            particle:Destroy()
+        end)
+    end
+    
+    -- Sende eine Nachricht an alle Spieler
+    local message = Instance.new("Message")
+    message.Text = LocalPlayer.Name .. " startet eine Partikel-Show!"
+    message.Parent = workspace
+    
+    wait(3)
+    message:Destroy()
+end
+
+-- NEU: Schlangen-Transformationsfunktion
+local function toggleSnake()
+    isSnake = not isSnake
+    
+    if isSnake then
+        SnakeButton.Text = "Schlange: AN"
+        SnakeButton.TextColor3 = Color3.new(0, 1, 0)
+        
+        -- Speichere die ursprünglichen Körperteile
+        for _, part in pairs(Character:GetChildren()) do
+            if part:IsA("BasePart") then
+                originalBodyParts[part.Name] = {
+                    Part = part:Clone(),
+                    Parent = part.Parent
+                }
+                part.Transparency = 1
+                part.CanCollide = false
+            end
+        end
+        
+        -- Erstelle ein neues Schlangenmodell
+        snakeModel = Instance.new("Model")
+        snakeModel.Name = "SnakeModel"
+        snakeModel.Parent = Character
+        
+        -- Erstelle den Schlangenkörper
+        local snakeColors = {Color3.new(0.2, 0.8, 0.2), Color3.new(0.1, 0.6, 0.1)}
+        local segmentCount = 10
+        local segmentSize = Vector3.new(2, 2, 3)
+        
+        for i = 1, segmentCount do
+            local segment = Instance.new("Part")
+            segment.Size = segmentSize
+            segment.Color = snakeColors[math.random(1, 2)]
+            segment.Material = Enum.Material.Plastic
+            segment.TopSurface = Enum.SurfaceType.Smooth
+            segment.BottomSurface = Enum.SurfaceType.Smooth
+            segment.CanCollide = false
+            segment.Parent = snakeModel
+            
+            table.insert(snakeParts, segment)
+            
+            -- Füge einen Mesh hinzu, damit es wie eine Schlangen-Segment aussieht
+            local mesh = Instance.new("SpecialMesh")
+            mesh.MeshType = Enum.MeshType.Sphere
+            mesh.Scale = Vector3.new(1, 0.7, 1.5)
+            mesh.Parent = segment
+        end
+        
+        -- Erstelle den Kopf
+        local head = Instance.new("Part")
+        head.Size = Vector3.new(3, 3, 4)
+        head.Color = Color3.new(0.1, 0.5, 0.1)
+        head.Material = Enum.Material.Plastic
+        head.TopSurface = Enum.SurfaceType.Smooth
+        head.BottomSurface = Enum.SurfaceType.Smooth
+        head.CanCollide = false
+        head.Parent = snakeModel
+        
+        local headMesh = Instance.new("SpecialMesh")
+        headMesh.MeshType = Enum.MeshType.Sphere
+        headMesh.Scale = Vector3.new(1, 0.8, 1.2)
+        headMesh.Parent = head
+        
+        -- Füge Augen hinzu
+        for i = -1, 1, 2 do
+            local eye = Instance.new("Part")
+            eye.Size = Vector3.new(0.5, 0.5, 0.5)
+            eye.Color = Color3.new(1, 0, 0)
+            eye.Material = Enum.Material.Neon
+            eye.CanCollide = false
+            eye.Parent = snakeModel
+            
+            local eyeWeld = Instance.new("Weld")
+            eyeWeld.Part0 = head
+            eyeWeld.Part1 = eye
+            eyeWeld.C0 = CFrame.new(i * 0.8, 0.5, 1)
+            eyeWeld.Parent = eye
+        end
+        
+        -- Füge eine Zunge hinzu
+        local tongue = Instance.new("Part")
+        tongue.Size = Vector3.new(0.2, 0.2, 3)
+        tongue.Color = Color3.new(1, 0, 0)
+        tongue.Material = Enum.Material.Neon
+        tongue.CanCollide = false
+        tongue.Parent = snakeModel
+        
+        local tongueWeld = Instance.new("Weld")
+        tongueWeld.Part0 = head
+        tongueWeld.Part1 = tongue
+        tongueWeld.C0 = CFrame.new(0, 0, 2)
+        tongueWeld.Parent = tongue
+        
+        -- Verbinde alle Segmente mit Welds
+        local lastPart = head
+        for i, segment in pairs(snakeParts) do
+            local weld = Instance.new("Weld")
+            weld.Part0 = lastPart
+            weld.Part1 = segment
+            weld.C0 = CFrame.new(0, 0, -segmentSize.Z / 2 - 1)
+            weld.Parent = segment
+            lastPart = segment
+        end
+        
+        -- Positioniere die Schlange am HumanoidRootPart
+        if Character:FindFirstChild("HumanoidRootPart") then
+            local rootWeld = Instance.new("Weld")
+            rootWeld.Part0 = Character.HumanoidRootPart
+            rootWeld.Part1 = head
+            rootWeld.C0 = CFrame.new(0, 0, 0)
+            rootWeld.Parent = head
+        end
+        
+        -- Ändere die Bewegungsgeschwindigkeit
+        if Humanoid then
+            Humanoid.WalkSpeed = 8
+        end
+        
+        -- Füge eine schlangenförmige Animation hinzu
+        spawn(function()
+            while isSnake do
+                for i, segment in pairs(snakeParts) do
+                    if segment and segment.Parent then
+                        local offset = math.sin(tick() * 2 + i * 0.5) * 0.3
+                        segment.CFrame = segment.CFrame * CFrame.new(offset, 0, 0)
+                    end
+                end
+                wait(0.1)
+            end
+        end)
+          else
+        SnakeButton.Text = "Schlange: AUS"
+        SnakeButton.TextColor3 = Color3.new(1, 0, 0)
+        
+        -- Zerstöre das Schlangenmodell
+        if snakeModel then
+            snakeModel:Destroy()
+            snakeModel = nil
+        end
+        
+        -- Stelle die ursprünglichen Körperteile wieder her
+        for name, data in pairs(originalBodyParts) do
+            if data.Part and Character:FindFirstChild(name) then
+                Character[name]:Destroy()
+                data.Part.Parent = Character
+            end
+        end
+        
+        -- Leere die Tabellen
+        originalBodyParts = {}
+        snakeParts = {}
+        
+        -- Stelle die ursprüngliche Bewegungsgeschwindigkeit wieder her
+        if Humanoid then
+            Humanoid.WalkSpeed = 16 * speedValue
+        end
+    end
+end
+
+-- NEU: Tanz-Animation
+local function startDance()
+    if not Character or not Humanoid then return end
+    
+    -- Erstelle eine neue Animation
+    local danceAnim = Instance.new("Animation")
+    danceAnim.AnimationId = "rbxassetid://507777136" -- Beispiel-Tanz-Animation
+    
+    -- Lade die Animation
+    local animator = Humanoid:FindFirstChild("Animator")
+    if not animator then
+        animator = Instance.new("Animator")
+        animator.Parent = Humanoid
+    end
+    
+    local danceTrack = animator:LoadAnimation(danceAnim)
+    danceTrack:Play()
+    
+    -- Sende eine Nachricht an alle Spieler
+    local message = Instance.new("Message")
+    message.Text = LocalPlayer.Name .. " tanzt wie nie zuvor!"
+    message.Parent = workspace
+    
+    wait(3)
+    message:Destroy()
+    
+    -- Stoppe die Animation nach 10 Sekunden
+    wait(7)
+    danceTrack:Stop()
 end
 
 -- NEU: Insta-Kill Funktion
@@ -1016,6 +1273,9 @@ spawn(function()
 end)
 
 -- Event für den neuen Unsichtbarkeits-Button
+DanceButton.MouseButton1Click:Connect(startDance)
+ParticleButton.MouseButton1Click:Connect(startParticleShow)
+SnakeButton.MouseButton1Click:Connect(toggleSnake)
 InvisibilityButton.MouseButton1Click:Connect(toggleInvisibility)
 ESPButton.MouseButton1Click:Connect(toggleESP)
 NoClipButton.MouseButton1Click:Connect(toggleNoClip)
