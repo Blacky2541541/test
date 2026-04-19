@@ -277,6 +277,8 @@ local tpTargetPlayer = nil
 local invisibilityEnabled = false
 local originalTransparency = {}
 local originalCharacterParts = {}
+-- Füge diese Variable bei den anderen Variablen am Anfang hinzu
+local cameraOffset = nil
 
 -- Geschwindigkeitsfunktion
 local function updateSpeed()
@@ -393,50 +395,73 @@ local function updateESP()
     end
 end
 
--- NEU: Unsichtbarkeits-Funktion
+-- NEU: Verbesserte Unsichtbarkeits-Funktion
 local function toggleInvisibility()
     invisibilityEnabled = not invisibilityEnabled
     if invisibilityEnabled then
         InvisibilityButton.Text = "Unsichtbarkeit: AN"
         InvisibilityButton.TextColor3 = Color3.new(0, 1, 0)
         
-        -- Speichere ursprüngliche Transparenz-Werte
+        -- Mache alle Körperteile für ALLE unsichtbar
         for _, part in pairs(Character:GetDescendants()) do
             if part:IsA("BasePart") then
+                -- Speichere den ursprünglichen Wert
                 originalTransparency[part] = part.Transparency
-                originalCharacterParts[part] = true
                 part.Transparency = 1
             end
         end
         
-        -- Entferne den Character aus dem Workspace, um ihn für andere unsichtbar zu machen
-        if Character.Parent then
-            Character.Parent = nil
-            wait(0.1)
-            Character.Parent = workspace
+        -- Verstecke auch das Gesicht und Accessoires
+        local head = Character:FindFirstChild("Head")
+        if head then
+            if head:FindFirstChild("face") then
+                head.face.Transparency = 1
+            end
+            for _, accessory in pairs(head:GetChildren()) do
+                if accessory:IsA("Accessory") or accessory:IsA("Hat") then
+                    accessory.Handle.Transparency = 1
+                end
+            end
         end
         
-        -- Deaktiviere die Beleuchtung des Charakters
-        if Humanoid then
-            Humanoid.MaxHealth = 0
-            Humanoid.Health = 0
-            wait(0.1)
-            Humanoid.MaxHealth = 100
-            Humanoid.Health = 100
+        -- WICHTIG: Sorge dafür, dass du dich selbst siehst, indem du die Kamera leicht nach vorne verschiebst
+        if Humanoid and Humanoid.RootPart then
+            cameraOffset = Humanoid.RootPart.CFrame.LookVector * 0.5 -- Kleiner Vektor nach vorne
         end
+
     else
         InvisibilityButton.Text = "Unsichtbarkeit: AUS"
         InvisibilityButton.TextColor3 = Color3.new(1, 0, 0)
         
-        -- Stelle ursprüngliche Transparenz-Werte wieder her
-        for part, _ in pairs(originalCharacterParts) do
+        -- Stelle die ursprüngliche Transparenz wieder her
+        for part, transparency in pairs(originalTransparency) do
             if part and part.Parent then
-                part.Transparency = originalTransparency[part] or 0
+                part.Transparency = transparency
             end
         end
         
+        -- Setze alle Teile, die wir nicht gespeichert haben, wieder auf sichtbar
+        for _, part in pairs(Character:GetDescendants()) do
+            if part:IsA("BasePart") and not originalTransparency[part] then
+                part.Transparency = 0
+            end
+        end
+        
+        -- Zeige Gesicht und Accessoires wieder
+        local head = Character:FindFirstChild("Head")
+        if head then
+            if head:FindFirstChild("face") then
+                head.face.Transparency = 0
+            end
+            for _, accessory in pairs(head:GetChildren()) do
+                if accessory:IsA("Accessory") or accessory:IsA("Hat") then
+                    accessory.Handle.Transparency = 0
+                end
+            end
+        end
+
         originalTransparency = {}
-        originalCharacterParts = {}
+        cameraOffset = nil -- Setze den Offset zurück
     end
 end
 
@@ -1022,6 +1047,11 @@ RunService.Stepped:Connect(function()
     
     -- NEU: ESP Update
     updateESP()
+    
+    -- NEU: Kamera-Offset für Unsichtbarkeit
+    if cameraOffset and Humanoid and Humanoid.RootPart then
+        workspace.CurrentCamera.CFrame = Humanoid.RootPart.CFrame * CFrame.new(cameraOffset)
+    end
 end)
 
 -- Initialisierung
