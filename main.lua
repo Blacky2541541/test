@@ -279,6 +279,9 @@ local originalTransparency = {}
 local originalCharacterParts = {}
 -- Füge diese Variable bei den anderen Variablen am Anfang hinzu
 local cameraOffset = nil
+-- Variablen für die Klon-Methode
+local characterClone = nil
+local originalCharacter = nil
 
 -- Geschwindigkeitsfunktion
 local function updateSpeed()
@@ -395,82 +398,80 @@ local function updateESP()
     end
 end
 
--- NEU: Finale Unsichtbarkeits-Funktion (behebt das Kamera-Problem)
+-- NEU: Unsichtbarkeits-Funktion mit Klon-Methode (funktioniert auf dem Server)
 local function toggleInvisibility()
     invisibilityEnabled = not invisibilityEnabled
+    
     if invisibilityEnabled then
         InvisibilityButton.Text = "Unsichtbarkeit: AN"
         InvisibilityButton.TextColor3 = Color3.new(0, 1, 0)
         
-        -- Mache alle Körperteile AUSSER dem Head für alle unsichtbar
-        for _, part in pairs(Character:GetDescendants()) do
-            if part:IsA("BasePart") and part.Name ~= "Head" then
-                -- Speichere den ursprünglichen Wert
-                originalTransparency[part] = part.Transparency
+        -- Speichere das Original
+        originalCharacter = Character
+        
+        -- Klone den Charakter
+        characterClone = originalCharacter:Clone()
+        
+        -- Mache den Klon unsichtbar
+        for _, part in pairs(characterClone:GetDescendants()) do
+            if part:IsA("BasePart") then
                 part.Transparency = 1
-            elseif part:IsA("Accessory") and part:FindFirstChild("Handle") then
-                originalTransparency[part] = part.Handle.Transparency
-                part.Handle.Transparency = 1
+                part.CanCollide = false -- Wichtig, damit du nicht stecken bleibst
             end
         end
-
-        -- Der spezielle Teil: Behandle den Head getrennt
-        local head = Character:FindFirstChild("Head")
-        if head then
-            -- Mache das Gesicht (face) unsichtbar, aber nicht den Head selbst
-            if head:FindFirstChild("face") then
-                originalTransparency["face"] = head.face.Transparency
-                head.face.Transparency = 1
-            end
-            
-            -- Mache Accessoires im Head unsichtbar
-            for _, accessory in pairs(head:GetChildren()) do
-                if accessory:IsA("Accessory") or accessory:IsA("Hat") then
-                    originalTransparency[accessory] = accessory.Handle.Transparency
-                    accessory.Handle.Transparency = 1
+        
+        -- Setze den Klon in die Welt
+        characterClone.Parent = workspace
+        characterClone.HumanoidRootPart.CFrame = originalCharacter.HumanoidRootPart.CFrame
+        
+        -- WICHTIG: Übertrage die Steuerung auf den Klon
+        player.Character = characterClone
+        Character = characterClone -- Aktualisiere unsere lokale Variable
+        Humanoid = Character:WaitForChild("Humanoid")
+        
+        -- Mache den Original-Charakter für DICH unsichtbar (damit du nicht doppelt siehst)
+        originalCharacter.Parent = nil -- Zerstört ihn nur für dich
+        
+        -- Führe die NoClip-Logik für den neuen Charakter aus
+        if noClipEnabled then
+            for _, part in pairs(Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
                 end
             end
         end
         
-        -- Verstecke Namen und Gesundheitsanzeige
-        local humanoid = Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            originalTransparency["Humanoid"] = {
-                healthDisplayDistance = humanoid.HealthDisplayDistance,
-                nameDisplayDistance = humanoid.NameDisplayDistance
-            }
-            humanoid.HealthDisplayDistance = 0
-            humanoid.NameDisplayDistance = 0
-        end
-
     else
         InvisibilityButton.Text = "Unsichtbarkeit: AUS"
         InvisibilityButton.TextColor3 = Color3.new(1, 0, 0)
         
-        -- Stelle alle Teile wieder her
-        for part, transparency in pairs(originalTransparency) do
-            -- Überspringe die speziellen Objekte
-            if part ~= "Humanoid" and part ~= "face" then
-                if part and part.Parent then
-                    part.Transparency = transparency
+        -- Stelle den Original-Charakter wieder her
+        if originalCharacter then
+            originalCharacter.Parent = workspace
+            player.Character = originalCharacter
+            
+            -- WICHTIG: Zerstöre den Klon
+            if characterClone then
+                characterClone:Destroy()
+            end
+            
+            -- Aktualisiere unsere Variablen
+            Character = originalCharacter
+            Humanoid = Character:WaitForChild("Humanoid")
+            
+            -- Setze die Variablen zurück
+            characterClone = nil
+            originalCharacter = nil
+            
+            -- Führe die NoClip-Logik für den wiederhergestellten Charakter aus
+            if noClipEnabled then
+                for _, part in pairs(Character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
                 end
             end
         end
-        
-        -- Stelle das Gesicht wieder her
-        local head = Character:FindFirstChild("Head")
-        if head and originalTransparency["face"] then
-            head.face.Transparency = originalTransparency["face"]
-        end
-        
-        -- Stelle den Humanoid wieder her
-        local humanoid = Character:FindFirstChildOfClass("Humanoid")
-        if humanoid and originalTransparency["Humanoid"] then
-            humanoid.HealthDisplayDistance = originalTransparency["Humanoid"].healthDisplayDistance
-            humanoid.NameDisplayDistance = originalTransparency["Humanoid"].nameDisplayDistance
-        end
-        
-        originalTransparency = {}
     end
 end
 
@@ -1110,18 +1111,60 @@ end
 Players.PlayerAdded:Connect(onPlayerAdded)
 Players.PlayerRemoving:Connect(onPlayerRemoving)
 
--- Stelle sicher, dass Character und Humanoid immer aktuell sind
-LocalPlayer.CharacterAdded:Connect(function(newChar)
-    Character = newChar
+-- ==================== ZENTRALE RESPAWN-FUNKTION (BEHEBT ALLE PROBLEME) ====================
+
+-- Diese Funktion wird IMMER aufgerufen, wenn du respawnst. Sie räumt alles sauber auf.
+LocalPlayer.CharacterAdded:Connect(function(newCharacter)
+    print("Respawn erkannt. Setze alle Funktionen zurück.")
+    
+    -- 1. WICHTIG: Unsichtbarkeit sofort zurücksetzen
+    if invisibilityEnabled then
+        -- Sichere Methode zum Zurücksetzen der Unsichtbarkeit
+        invisibilityEnabled = false
+        InvisibilityButton.Text = "Unsichtbarkeit: AUS"
+        InvisibilityButton.TextColor3 = Color3.new(1, 0, 0)
+
+        -- Zerstöre den Klon, falls er noch existiert
+        if characterClone then
+            characterClone:Destroy()
+            characterClone = nil
+        end
+        
+        -- Setze die Steuerung auf den neuen Charakter zurück
+        player.Character = newCharacter
+    end
+    
+    -- 2. Aktualisiere die globalen Charakter-Variablen
+    Character = newCharacter
     Humanoid = Character:WaitForChild("Humanoid")
     
-    -- Optional: Deaktiviere NoClip und Fliegen nach dem Respawn für Sicherheit
+    -- 3. Setze alle anderen Funktionen zurück, um Fehler zu vermeiden
     if noClipEnabled then
-        toggleNoClip()
+        toggleNoClip() -- Schaltet NoClip aus
     end
     if flying then
-        stopFly()
+        stopFly() -- Schaltet Fliegen aus
     end
+    if atmFarmEnabled then
+        atmFarmEnabled = false
+        ATMFarmButton.Text = "ATM Farm: AUS"
+        ATMFarmButton.TextColor3 = Color3.new(1, 0, 0)
+        isRobbing = false
+        currentATM = nil
+    end
+    if isFollowing then
+        toggleFollow(targetPlayer) -- Beendet das Folgen
+    end
+    
+    -- 4. Setze Hilfsvariablen zurück
+    originalCharacter = nil
+    originalTransparency = {}
+    
+    -- 5. Aktualisiere die Spielerlisten
+    updatePlayerList()
+    updateTPPlayerList()
+    
+    print("Reset nach Respawn abgeschlossen.")
 end)
 
 -- ==================== EVENT-HANDLER FÜR DIE SPIELERLISTE ====================
