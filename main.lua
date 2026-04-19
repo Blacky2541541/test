@@ -395,47 +395,17 @@ local function updateESP()
     end
 end
 
--- NEU: Verbesserte Unsichtbarkeits-Funktion (ohne Kameraprobleme)
+-- NEU: Finale Unsichtbarkeits-Funktion (behebt das Kamera-Problem)
 local function toggleInvisibility()
     invisibilityEnabled = not invisibilityEnabled
     if invisibilityEnabled then
         InvisibilityButton.Text = "Unsichtbarkeit: AN"
         InvisibilityButton.TextColor3 = Color3.new(0, 1, 0)
         
-        -- Finde den Humanoid und das Head-Objekt
-        local humanoid = Character:FindFirstChildOfClass("Humanoid")
-        local head = Character:FindFirstChild("Head")
-        
-        if humanoid then
-            -- Speichere den ursprünglichen Zustand
-            originalTransparency["Humanoid"] = {
-                healthDisplayDistance = humanoid.HealthDisplayDistance,
-                nameDisplayDistance = humanoid.NameDisplayDistance,
-                nameOcclusion = humanoid.NameOcclusion
-            }
-            
-            -- Verstecke die Namen und Gesundheitsleiste für andere
-            humanoid.HealthDisplayDistance = 0
-            humanoid.NameDisplayDistance = 0
-            humanoid.NameOcclusion = Enum.NameOcclusion.OccludeAll
-        end
-        
-        if head then
-            -- Speichere den ursprünglichen Zustand des Head
-            originalTransparency["Head"] = {}
-            
-            -- Mache den Head und alles darin unsichtbar
-            for _, part in pairs(head:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    originalTransparency["Head"][part] = part.Transparency
-                    part.Transparency = 1
-                end
-            end
-        end
-        
-        -- Mache alle anderen Körperteile und Accessoires unsichtbar
+        -- Mache alle Körperteile AUSSER dem Head für alle unsichtbar
         for _, part in pairs(Character:GetDescendants()) do
-            if part:IsA("BasePart") and part.Parent ~= Character:FindFirstChild("Head") then -- Überspringe den Head, den wir schon behandelt haben
+            if part:IsA("BasePart") and part.Name ~= "Head" then
+                -- Speichere den ursprünglichen Wert
                 originalTransparency[part] = part.Transparency
                 part.Transparency = 1
             elseif part:IsA("Accessory") and part:FindFirstChild("Handle") then
@@ -444,36 +414,60 @@ local function toggleInvisibility()
             end
         end
 
+        -- Der spezielle Teil: Behandle den Head getrennt
+        local head = Character:FindFirstChild("Head")
+        if head then
+            -- Mache das Gesicht (face) unsichtbar, aber nicht den Head selbst
+            if head:FindFirstChild("face") then
+                originalTransparency["face"] = head.face.Transparency
+                head.face.Transparency = 1
+            end
+            
+            -- Mache Accessoires im Head unsichtbar
+            for _, accessory in pairs(head:GetChildren()) do
+                if accessory:IsA("Accessory") or accessory:IsA("Hat") then
+                    originalTransparency[accessory] = accessory.Handle.Transparency
+                    accessory.Handle.Transparency = 1
+                end
+            end
+        end
+        
+        -- Verstecke Namen und Gesundheitsanzeige
+        local humanoid = Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            originalTransparency["Humanoid"] = {
+                healthDisplayDistance = humanoid.HealthDisplayDistance,
+                nameDisplayDistance = humanoid.NameDisplayDistance
+            }
+            humanoid.HealthDisplayDistance = 0
+            humanoid.NameDisplayDistance = 0
+        end
+
     else
         InvisibilityButton.Text = "Unsichtbarkeit: AUS"
         InvisibilityButton.TextColor3 = Color3.new(1, 0, 0)
+        
+        -- Stelle alle Teile wieder her
+        for part, transparency in pairs(originalTransparency) do
+            -- Überspringe die speziellen Objekte
+            if part ~= "Humanoid" and part ~= "face" then
+                if part and part.Parent then
+                    part.Transparency = transparency
+                end
+            end
+        end
+        
+        -- Stelle das Gesicht wieder her
+        local head = Character:FindFirstChild("Head")
+        if head and originalTransparency["face"] then
+            head.face.Transparency = originalTransparency["face"]
+        end
         
         -- Stelle den Humanoid wieder her
         local humanoid = Character:FindFirstChildOfClass("Humanoid")
         if humanoid and originalTransparency["Humanoid"] then
             humanoid.HealthDisplayDistance = originalTransparency["Humanoid"].healthDisplayDistance
             humanoid.NameDisplayDistance = originalTransparency["Humanoid"].nameDisplayDistance
-            humanoid.NameOcclusion = originalTransparency["Humanoid"].nameOcclusion
-        end
-        
-        -- Stelle den Head wieder her
-        local head = Character:FindFirstChild("Head")
-        if head and originalTransparency["Head"] then
-            for part, transparency in pairs(originalTransparency["Head"]) do
-                if part and part.Parent then
-                    part.Transparency = transparency
-                end
-            end
-        end
-        
-        -- Stelle alle anderen Teile wieder her
-        for part, transparency in pairs(originalTransparency) do
-            -- Überspringe die Tabellen für Head und Humanoid
-            if part ~= "Humanoid" and part ~= "Head" then
-                if part and part.Parent then
-                    part.Transparency = transparency
-                end
-            end
         end
         
         originalTransparency = {}
