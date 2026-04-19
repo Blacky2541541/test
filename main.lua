@@ -128,6 +128,19 @@ TPButton.TextColor3 = Color3.new(1, 1, 0)
 TPButton.Font = Enum.Font.SourceSansBold
 TPButton.TextSize = 16
 
+-- NEU: Unsichtbarkeits-Button
+local InvisibilityButton = Instance.new("TextButton")
+InvisibilityButton.Parent = MainFrame
+InvisibilityButton.Size = UDim2.new(0, 200, 0, 30)
+InvisibilityButton.Position = UDim2.new(0, 50, 0, 380) -- Position unter dem ATM Farm Button
+InvisibilityButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+InvisibilityButton.BorderSizePixel = 1
+InvisibilityButton.BorderColor3 = Color3.new(0, 1, 0)
+InvisibilityButton.Text = "Unsichtbarkeit: AUS"
+InvisibilityButton.TextColor3 = Color3.new(1, 0, 0)
+InvisibilityButton.Font = Enum.Font.SourceSansBold
+InvisibilityButton.TextSize = 16
+
 -- NEU: ATM Farm Button
 local ATMFarmButton = Instance.new("TextButton")
 ATMFarmButton.Parent = MainFrame
@@ -261,6 +274,10 @@ local atmCooldown = 0
 -- NEU: TP-Target Variable
 local tpTargetPlayer = nil
 
+local invisibilityEnabled = false
+local originalTransparency = {}
+local originalCharacterParts = {}
+
 -- Geschwindigkeitsfunktion
 local function updateSpeed()
     if Humanoid then
@@ -373,6 +390,53 @@ local function updateESP()
             -- Entferne ESP, wenn der Spieler kein Character mehr hat
             removeESP(player)
         end
+    end
+end
+
+-- NEU: Unsichtbarkeits-Funktion
+local function toggleInvisibility()
+    invisibilityEnabled = not invisibilityEnabled
+    if invisibilityEnabled then
+        InvisibilityButton.Text = "Unsichtbarkeit: AN"
+        InvisibilityButton.TextColor3 = Color3.new(0, 1, 0)
+        
+        -- Speichere ursprüngliche Transparenz-Werte
+        for _, part in pairs(Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                originalTransparency[part] = part.Transparency
+                originalCharacterParts[part] = true
+                part.Transparency = 1
+            end
+        end
+        
+        -- Entferne den Character aus dem Workspace, um ihn für andere unsichtbar zu machen
+        if Character.Parent then
+            Character.Parent = nil
+            wait(0.1)
+            Character.Parent = workspace
+        end
+        
+        -- Deaktiviere die Beleuchtung des Charakters
+        if Humanoid then
+            Humanoid.MaxHealth = 0
+            Humanoid.Health = 0
+            wait(0.1)
+            Humanoid.MaxHealth = 100
+            Humanoid.Health = 100
+        end
+    else
+        InvisibilityButton.Text = "Unsichtbarkeit: AUS"
+        InvisibilityButton.TextColor3 = Color3.new(1, 0, 0)
+        
+        -- Stelle ursprüngliche Transparenz-Werte wieder her
+        for part, _ in pairs(originalCharacterParts) do
+            if part and part.Parent then
+                part.Transparency = originalTransparency[part] or 0
+            end
+        end
+        
+        originalTransparency = {}
+        originalCharacterParts = {}
     end
 end
 
@@ -916,6 +980,8 @@ spawn(function()
     end
 end)
 
+-- Event für den neuen Unsichtbarkeits-Button
+InvisibilityButton.MouseButton1Click:Connect(toggleInvisibility)
 ESPButton.MouseButton1Click:Connect(toggleESP)
 NoClipButton.MouseButton1Click:Connect(toggleNoClip)
 BarrierButton.MouseButton1Click:Connect(toggleBarriers)
