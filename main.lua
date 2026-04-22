@@ -16,20 +16,16 @@ local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = game:GetService("CoreGui")
 ScreenGui.IgnoreGuiInset = true
 
--- Hauptfenster mit modernem Design
+-- Hauptfenster mit viereckigem Design
 local MainFrame = Instance.new("Frame")
 MainFrame.Parent = ScreenGui
-MainFrame.Size = UDim2.new(0, 380, 0, 720)
-MainFrame.Position = UDim2.new(0.5, -190, 0.5, -360)
+MainFrame.Size = UDim2.new(0, 380, 0, 800)
+MainFrame.Position = UDim2.new(0.5, -190, 0.5, -400)
 MainFrame.BackgroundColor3 = Color3.new(0.05, 0.05, 0.08)
-MainFrame.BorderSizePixel = 0
+MainFrame.BorderSizePixel = 2
+MainFrame.BorderColor3 = Color3.new(0.2, 0.4, 0.8)
 MainFrame.Active = true
 MainFrame.Draggable = true
-
--- Moderner abgerundeter Rahmen
-local MainCorner = Instance.new("UICorner")
-MainCorner.Parent = MainFrame
-MainCorner.CornerRadius = UDim.new(0, 20)
 
 -- Glowing Border mit blauem Akzent
 local MainStroke = Instance.new("UIStroke")
@@ -126,10 +122,7 @@ local function createModernToggle(name, position, text, icon, defaultColor, acti
     button.TextSize = 16
     button.TextXAlignment = Enum.TextXAlignment.Left
     
-    -- Rounded Corners
-    local corner = Instance.new("UICorner")
-    corner.Parent = button
-    corner.CornerRadius = UDim.new(0, 12)
+    -- Keine abgerundeten Ecken - viereckige Buttons
     
     -- Gradient für default Zustand
     local gradient = Instance.new("UIGradient")
@@ -219,6 +212,9 @@ local InstaKillButton, toggleInstaKill = createModernToggle("InstaKill", UDim2.n
 local ATMFarmButton, toggleATMFarm = createModernToggle("ATMFarm", UDim2.new(0, 30, 0, 415), "ATM Farm: AUS", "💰", Color3.new(0.15, 0.15, 0.2), Color3.new(0.2, 0.4, 0.8))
 local InvisibilityButton, toggleInvisibility = createModernToggle("Invisibility", UDim2.new(0, 30, 0, 470), "Unsichtbarkeit: AUS", "👤", Color3.new(0.15, 0.15, 0.2), Color3.new(0.2, 0.4, 0.8))
 local SnakeButton, toggleSnake = createModernToggle("Snake", UDim2.new(0, 30, 0, 525), "Schlange: AUS", "🐍", Color3.new(0.15, 0.15, 0.2), Color3.new(0.2, 0.4, 0.8))
+local TPButton, toggleTP = createModernToggle("TP", UDim2.new(0, 30, 0, 580), "TP: AUS", "⚡", Color3.new(0.15, 0.15, 0.2), Color3.new(0.8, 0.6, 0.2))
+local DanceButton, toggleDance = createModernToggle("Dance", UDim2.new(0, 30, 0, 635), "Tanzen: AUS", "🎵", Color3.new(0.15, 0.15, 0.2), Color3.new(0.8, 0.2, 0.8))
+local ParticleButton, toggleParticle = createModernToggle("Particle", UDim2.new(0, 30, 0, 690), "Partikel: AUS", "✨", Color3.new(0.15, 0.15, 0.2), Color3.new(0.2, 0.8, 0.4))
 
 -- Moderner Close Button mit Animation
 local CloseButton = Instance.new("TextButton")
@@ -232,9 +228,7 @@ CloseButton.TextColor3 = Color3.new(1, 1, 1)
 CloseButton.Font = Enum.Font.GothamBold
 CloseButton.TextSize = 18
 
-local CloseCorner = Instance.new("UICorner")
-CloseCorner.Parent = CloseButton
-CloseCorner.CornerRadius = UDim.new(0, 20)
+-- Viereckiger Close Button ohne abgerundete Ecken
 
 local CloseGradient = Instance.new("UIGradient")
 CloseGradient.Parent = CloseButton
@@ -264,9 +258,7 @@ PlayerListFrame.BorderSizePixel = 0
 PlayerListFrame.Active = true
 PlayerListFrame.Draggable = true
 
-local PlayerListCorner = Instance.new("UICorner")
-PlayerListCorner.Parent = PlayerListFrame
-PlayerListCorner.CornerRadius = UDim.new(0, 15)
+-- Viereckige Spielerliste ohne abgerundete Ecken
 
 local PlayerListStroke = Instance.new("UIStroke")
 PlayerListStroke.Parent = PlayerListFrame
@@ -296,9 +288,7 @@ PlayerScrollingFrame.ScrollBarThickness = 6
 PlayerScrollingFrame.ScrollBarImageColor3 = Color3.new(0.2, 0.4, 0.8)
 PlayerScrollingFrame.ScrollBarImageTransparency = 0.3
 
-local ScrollCorner = Instance.new("UICorner")
-ScrollCorner.Parent = PlayerScrollingFrame
-ScrollCorner.CornerRadius = UDim.new(0, 8)
+-- Viereckiges ScrollingFrame ohne abgerundete Ecken
 
 -- Layout für automatische Sortierung
 local PlayerListLayout = Instance.new("UIListLayout")
@@ -316,9 +306,7 @@ TPListFrame.BorderSizePixel = 0
 TPListFrame.Active = true
 TPListFrame.Draggable = true
 
-local TPListCorner = Instance.new("UICorner")
-TPListCorner.Parent = TPListFrame
-TPListCorner.CornerRadius = UDim.new(0, 15)
+-- Viereckige TP-Liste ohne abgerundete Ecken
 
 local TPListStroke = Instance.new("UIStroke")
 TPListStroke.Parent = TPListFrame
@@ -348,9 +336,7 @@ TPScrollingFrame.ScrollBarThickness = 6
 TPScrollingFrame.ScrollBarImageColor3 = Color3.new(0.8, 0.6, 0.2)
 TPScrollingFrame.ScrollBarImageTransparency = 0.3
 
-local TPScrollCorner = Instance.new("UICorner")
-TPScrollCorner.Parent = TPScrollingFrame
-TPScrollCorner.CornerRadius = UDim.new(0, 8)
+-- Viereckiges TP-ScrollingFrame ohne abgerundete Ecken
 
 local TPListLayout = Instance.new("UIListLayout")
 TPListLayout.Parent = TPScrollingFrame
@@ -1389,7 +1375,7 @@ end)
 local function animateGUIEntry()
     -- MainFrame Fade-in von unten
     MainFrame.Position = UDim2.new(0.5, -190, 1, 0)
-    local mainTween = TweenService:Create(MainFrame, TweenInfo.new(0.8, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -190, 0.5, -360)})
+    local mainTween = TweenService:Create(MainFrame, TweenInfo.new(0.8, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -190, 0.5, -400)})
     mainTween:Play()
     
     -- PlayerList Slide-in von links
