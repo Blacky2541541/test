@@ -19,8 +19,8 @@ ScreenGui.IgnoreGuiInset = true
 -- Hauptfenster mit modernem Design
 local MainFrame = Instance.new("Frame")
 MainFrame.Parent = ScreenGui
-MainFrame.Size = UDim2.new(0, 380, 0, 650)
-MainFrame.Position = UDim2.new(0.5, -190, 0.5, -325)
+MainFrame.Size = UDim2.new(0, 380, 0, 720)
+MainFrame.Position = UDim2.new(0.5, -190, 0.5, -360)
 MainFrame.BackgroundColor3 = Color3.new(0.05, 0.05, 0.08)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -1389,7 +1389,7 @@ end)
 local function animateGUIEntry()
     -- MainFrame Fade-in von unten
     MainFrame.Position = UDim2.new(0.5, -190, 1, 0)
-    local mainTween = TweenService:Create(MainFrame, TweenInfo.new(0.8, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -190, 0.5, -325)})
+    local mainTween = TweenService:Create(MainFrame, TweenInfo.new(0.8, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -190, 0.5, -360)})
     mainTween:Play()
     
     -- PlayerList Slide-in von links
